@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zwierzak Skoczek</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            overflow: hidden;
+            background-color: #87CEEB;
+            border: 4px solid #654321;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        #ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50px;
+            background-color: #8B4513;
+            z-index: 2;
+        }
+        
+        #player {
+            position: absolute;
+            left: 100px;
+            bottom: 50px;
+            width: 40px;
+            height: 40px;
+            z-index: 5;
+        }
+        
+        /* Stylizacja dla królika */
+        .bunny {
+            background-color: white;
+        }
+        
+        .bunny::before {
+            content: "";
+            position: absolute;
+            top: -15px;
+            width: 10px;
+            height: 20px;
+            background-color: white;
+            border-radius: 5px;
+            left: 5px;
+        }
+        
+        .bunny::after {
+            content: "";
+            position: absolute;
+            top: -15px;
+            width: 10px;
+            height: 20px;
+            background-color: white;
+            border-radius: 5px;
+            right: 5px;
+        }
+        
+        /* Stylizacja dla żaby */
+        .frog {
+            background-color: #4CAF50;
+            border-radius: 50% 50% 20% 20%;
+        }
+        
+        .frog::before, .frog::after {
+            content: "";
+            position: absolute;
+            top: 8px;
+            width: 10px;
+            height: 10px;
+            background-color: #333;
+            border-radius: 50%;
+        }
+        
+        .frog::before {
+            left: 5px;
+        }
+        
+        .frog::after {
+            right: 5px;
+        }
+        
+        /* Stylizacja dla myszy */
+        .mouse {
+            background-color: #9E9E9E;
+            border-radius: 50% 50% 40% 40%;
+            position: relative;
+        }
+        
+        /* Nos myszki */
+        .mouse::before {
+            content: "";
+            position: absolute;
+            top: 5px;
+            width: 8px;
+            height: 8px;
+            background-color: #FF69B4;
+            border-radius: 50%;
+            left: 16px;
+            z-index: 6;
+        }
+        
+        /* Oczy myszki */
+        .mouse::after {
+            content: "";
+            position: absolute;
+            top: -3px;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: transparent;
+        }
+        
+        /* Lewe oko */
+        .mouse:not(.character-preview)::after {
+            content: "";
+            position: absolute;
+            top: 7px;
+            left: 8px;
+            width: 6px;
+            height: 6px;
+            background-color: #000;
+            border-radius: 50%;
+            box-shadow: 18px 0 0 #000; /* Prawe oko */
+            z-index: 6;
+        }
+        
+        /* Wąsy myszki */
+        .mouse:not(.character-preview) {
+            overflow: visible;
+        }
+        
+        .mouse:not(.character-preview)::before {
+            content: "";
+            position: absolute;
+            top: 10px;
+            width: 8px;
+            height: 8px;
+            background-color: #FF69B4;
+            border-radius: 50%;
+            left: 16px;
+            z-index: 6;
+        }
+        
+        /* Dodajemy wąsy jako nowe elementy */
+        .mouse:not(.character-preview)::after {
+            content: "";
+            position: absolute;
+            top: 12px;
+            left: 4px;
+            width: 15px;
+            height: 1px;
+            background-color: #000;
+            box-shadow: 
+                0 3px 0 #000,
+                0 -3px 0 #000,
+                17px 0 0 #000,
+                17px 3px 0 #000,
+                17px -3px 0 #000;
+            transform: rotate(-5deg);
+            z-index: 6;
+        }
+        
+        .obstacle {
+            position: absolute;
+            bottom: 50px;
+            width: 39px;
+            background-color: #654321;
+            z-index: 4;
+        }
+        
+        .obstacle.small {
+            height: 50px;
+        }
+        
+        .obstacle.tall {
+            height: 100px;
+        }
+        
+        .carrot {
+            position: absolute;
+            bottom: 50px;
+            width: 20px;
+            height: 30px;
+            background-color: #FFA500;
+            z-index: 3;
+        }
+        
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            color: #654321;
+            font-weight: bold;
+            z-index: 9;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        #game-over h1 {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        #game-over p {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+        
+        #restart-btn {
+            padding: 10px 20px;
+            font-size: 20px;
+            background-color: #FFA500;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        #restart-btn:hover {
+            background-color: #FF8C00;
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        #start-screen h1 {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        #start-screen p {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        #start-btn {
+            padding: 10px 20px;
+            font-size: 20px;
+            background-color: #FFA500;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        #character-select {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .character-option {
+            width: 80px;
+            height: 80px;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .character-option:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+        
+        .character-option.selected {
+            border-color: #FFA500;
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .character-preview {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .character-name {
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        #level-up {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 165, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            z-index: 8;
+            text-align: center;
+            animation: fadeInOut 2s ease-in-out;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        /* Dekoracje */
+        .cloud {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        /* Nowy element słońce */
+        #sun {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            width: 80px;
+            height: 80px;
+            background-color: #FFFF00;
+            border-radius: 50%;
+            box-shadow: 0 0 40px #FFFF00;
+            z-index: 1;
+        }
+        
+        /* Promienie słońca */
+        #sun::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 25px;
+            width: 30px;
+            height: 10px;
+            background-color: #FFFF00;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #FFFF00;
+            transform-origin: center;
+            animation: sunrays 10s linear infinite;
+        }
+        
+        #sun::after {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 35px;
+            width: 10px;
+            height: 30px;
+            background-color: #FFFF00;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #FFFF00;
+            transform-origin: center;
+            animation: sunrays 10s linear infinite;
+        }
+        
+        @keyframes sunrays {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .bird {
+            position: absolute;
+            width: 30px;
+            height: 20px;
+            z-index: 3;
+            animation: fly 2s infinite alternate ease-in-out;
+        }
+        
+        .bird::before,
+        .bird::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 15px;
+            height: 15px;
+            background-color: var(--bird-color, #4682B4);
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            animation: flap 0.5s infinite alternate ease-in-out;
+        }
+        
+        .bird::before {
+            left: 0;
+        }
+        
+        .bird::after {
+            right: 0;
+        }
+        
+        @keyframes fly {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-15px); }
+        }
+        
+        @keyframes flap {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+        
+        /* Stylizacja dla podglądu zwierzątek */
+        .character-preview.bunny {
+            background-color: white;
+        }
+        
+        .character-preview.bunny::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            width: 8px;
+            height: 15px;
+            background-color: white;
+            border-radius: 5px;
+            left: 5px;
+        }
+        
+        .character-preview.bunny::after {
+            content: "";
+            position: absolute;
+            top: -10px;
+            width: 8px;
+            height: 15px;
+            background-color: white;
+            border-radius: 5px;
+            right: 5px;
+        }
+        
+        .character-preview.frog {
+            background-color: #4CAF50;
+            border-radius: 50% 50% 20% 20%;
+        }
+        
+        .character-preview.frog::before, .character-preview.frog::after {
+            content: "";
+            position: absolute;
+            top: 8px;
+            width: 8px;
+            height: 8px;
+            background-color: #333;
+            border-radius: 50%;
+        }
+        
+        .character-preview.frog::before {
+            left: 5px;
+        }
+        
+        .character-preview.frog::after {
+            right: 5px;
+        }
+        
+        .character-preview.mouse {
+            background-color: #9E9E9E;
+            border-radius: 50% 50% 40% 40%;
+        }
+        
+        .character-preview.mouse::before {
+            content: "";
+            position: absolute;
+            top: -5px;
+            width: 8px;
+            height: 8px;
+            background-color: #FF69B4;
+            border-radius: 50%;
+            left: 15px;
+        }
+        
+        .character-preview.mouse::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 12px;
+            height: 2px;
+            background-color: #000;
+            left: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="ground"></div>
+        <div id="player"></div>
+        <div id="score">Marchewki: 0</div>
+        <div id="level-up">Gratulacje! Nowy poziom!</div>
+        
+        <div id="start-screen">
+            <h1>Zwierzak Skoczek</h1>
+            <p>Wybierz swojego zwierzaka i pomóż mu przeskakiwać przeszkody i zbierać marchewki! Naciśnij SPACJĘ, aby przeskoczyć. Naciśnij SPACJĘ w powietrzu, aby wykonać podwójny skok.</p>
+            
+            <div id="character-select">
+                <div class="character-option selected" data-character="bunny">
+                    <div class="character-preview bunny"></div>
+                    <div class="character-name">Króliczek</div>
+                </div>
+                <div class="character-option" data-character="frog">
+                    <div class="character-preview frog"></div>
+                    <div class="character-name">Żabka</div>
+                </div>
+                <div class="character-option" data-character="mouse">
+                    <div class="character-preview mouse"></div>
+                    <div class="character-name">Myszka</div>
+                </div>
+            </div>
+            
+            <button id="start-btn">Rozpocznij Grę</button>
+        </div>
+        
+        <div id="game-over">
+            <h1>Koniec Gry!</h1>
+            <p id="final-score">Zebrane marchewki: 0 | Poziom: 1</p>
+            <button id="restart-btn">Zagraj Ponownie</button>
+        </div>
+    </div>
+
+    <script>
+        // Zmienne gry
+        let score = 0;
+        let baseGameSpeed = 5;
+        let gameSpeedMultiplier = 1.0;
+        let level = 1;
+        let isJumping = false;
+        let jumpCount = 0;
+        let jumpVelocity = 0;
+        let baseJumpVelocity = 15;
+        let baseGravity = 0.8;
+        let gravity = baseGravity;
+        let isGameOver = false;
+        let obstacles = [];
+        let carrots = [];
+        let decorations = [];
+        let playerElement = document.getElementById('player');
+        let groundHeight = 50;
+        let playerHeight = 40;
+        let playerBottom = groundHeight;
+        let gameInterval;
+        let activeObstaclePositions = [];
+        let baseObstacleMinTime = 2200;
+        let baseObstacleMaxTime = 3800;
+        let selectedCharacter = 'bunny'; // Domyślnie wybrany królik
+        
+        // Inicjalizacja po załadowaniu strony
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pobierz elementy wyboru postaci
+            const characterOptions = document.querySelectorAll('.character-option');
+            
+            // Obsługa wyboru postaci
+            characterOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Usuń klasę 'selected' ze wszystkich opcji
+                    characterOptions.forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Dodaj klasę 'selected' do klikniętej opcji
+                    this.classList.add('selected');
+                    
+                    // Zapisz wybraną postać
+                    selectedCharacter = this.getAttribute('data-character');
+                    console.log("Wybrano zwierzaka:", selectedCharacter);
+                });
+            });
+            
+            // Przycisk rozpoczęcia gry
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            
+            // Przycisk restartu
+            document.getElementById('restart-btn').addEventListener('click', restartGame);
+        });
+        
+        // Nasłuchiwanie klawiszy
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && !isGameOver) {
+                jump();
+                event.preventDefault(); // Zapobiega przewijaniu strony
+            }
+        });
+        
+        // Funkcja rozpoczynająca grę
+        function startGame() {
+            console.log("Rozpoczęcie gry z postacią:", selectedCharacter);
+            document.getElementById('start-screen').style.display = 'none';
+            
+            // Ustaw wybraną postać
+            playerElement.className = selectedCharacter;
+            
+            // Dodaj dekoracje
+            createDecorations();
+            
+            gameInterval = setInterval(updateGame, 20);
+            setTimeout(spawnObstacle, randomTime(1000, 3000));
+            setTimeout(spawnCarrot, randomTime(1000, 4000));
+            setTimeout(spawnCloud, randomTime(5000, 10000));
+            setTimeout(spawnBird, randomTime(7000, 15000));
+        }
+        
+        // Tworzenie początkowych dekoracji
+        function createDecorations() {
+            // Dodaj słońce
+            createSun();
+            
+            // Dodaj kilka początkowych ptaków
+            for (let i = 0; i < 3; i++) {
+                const birdPosition = {
+                    left: Math.random() * 700 + 50,
+                    top: Math.random() * 100 + 50
+                };
+                createBird(birdPosition.left, birdPosition.top);
+            }
+        }
+        
+        // Tworzenie słońca
+        function createSun() {
+            const sun = document.createElement('div');
+            sun.id = 'sun';
+            document.getElementById('game-container').appendChild(sun);
+        }
+        
+        // Generowanie chmury
+        function spawnCloud() {
+            if (isGameOver) return;
+            
+            const cloud = document.createElement('div');
+            cloud.classList.add('cloud');
+            
+            // Losowy rozmiar chmury
+            const size = Math.random() * 50 + 50;
+            cloud.style.width = size + 'px';
+            cloud.style.height = size * 0.6 + 'px';
+            
+            // Losowa pozycja
+            cloud.style.left = '800px';
+            cloud.style.top = Math.random() * 150 + 20 + 'px';
+            
+            document.getElementById('game-container').appendChild(cloud);
+            decorations.push(cloud);
+            
+            // Zaplanowanie kolejnej chmury
+            setTimeout(spawnCloud, randomTime(8000, 15000));
+        }
+        
+        // Generowanie ptaka
+        function spawnBird() {
+            if (isGameOver) return;
+            
+            // Losowa pozycja początkowa (z boku ekranu)
+            const startFromLeft = Math.random() > 0.5;
+            const birdLeft = startFromLeft ? -50 : 800;
+            const birdTop = Math.random() * 200 + 50;
+            
+            createBird(birdLeft, birdTop, startFromLeft);
+            
+            // Zaplanowanie kolejnego ptaka
+            setTimeout(spawnBird, randomTime(3000, 8000));
+        }
+        
+        // Tworzenie ptaka
+        function createBird(leftPosition, topPosition, flyFromLeft = true) {
+            const bird = document.createElement('div');
+            bird.classList.add('bird');
+            
+            // Ustaw pozycję
+            bird.style.left = leftPosition + 'px';
+            bird.style.top = topPosition + 'px';
+            
+            // Losowy kolor dla ptaka
+            const birdColors = ['#FF6347', '#4682B4', '#9370DB', '#20B2AA', '#D2691E', '#FF69B4'];
+            const randomBirdColor = birdColors[Math.floor(Math.random() * birdColors.length)];
+            bird.style.setProperty('--bird-color', randomBirdColor);
+            
+            // Kierunek lotu (lustrzane odbicie dla ptaków lecących w lewo)
+            if (!flyFromLeft) {
+                bird.style.transform = 'scaleX(-1)';
+            }
+            
+            document.getElementById('game-container').appendChild(bird);
+            decorations.push(bird);
+            
+            // Dodaj informację o kierunku lotu
+            bird.dataset.flyDirection = flyFromLeft ? 'right' : 'left';
+        }
+        
+        // Funkcja do skakania
+        function jump() {
+            // Pierwszy skok z ziemi
+            if (playerBottom <= groundHeight && jumpCount === 0) {
+                isJumping = true;
+                jumpCount = 1;
+                // Stała siła skoku, niezależna od prędkości gry
+                jumpVelocity = baseJumpVelocity;
+            } 
+            // Drugi skok (w powietrzu)
+            else if (jumpCount === 1) {
+                jumpCount = 2;
+                // Stała siła drugiego skoku, niezależna od prędkości gry
+                jumpVelocity = baseJumpVelocity * 0.8;
+            }
+        }
+        
+        // Aktualizacja gry
+        function updateGame() {
+            // Oblicz aktualną prędkość gry
+            let currentGameSpeed = baseGameSpeed * gameSpeedMultiplier;
+            
+            // Oblicz timeStep - użyjemy go do przyspieszenia fizyki skoku
+            let timeStep = gameSpeedMultiplier;
+            
+            // Aktualizacja skoku
+            if (isJumping || playerBottom > groundHeight) {
+                // Zastosuj grawitację do prędkości pionowej - skalowanie przez timeStep
+                jumpVelocity -= gravity * timeStep;
+                
+                // Aktualizuj pozycję - skalowanie przez timeStep
+                playerBottom += jumpVelocity * timeStep;
+                
+                // Sprawdź, czy dotknęliśmy ziemi
+                if (playerBottom <= groundHeight) {
+                    playerBottom = groundHeight;
+                    jumpVelocity = 0;
+                    isJumping = false;
+                    jumpCount = 0;
+                }
+            }
+            
+            // Aktualizuj pozycję zwierzaka
+            playerElement.style.bottom = playerBottom + 'px';
+            
+            // Aktualizacja przeszkód
+            for (let i = 0; i < obstacles.length; i++) {
+                let obstacle = obstacles[i];
+                let currentLeft = parseInt(obstacle.style.left);
+                let newLeft = currentLeft - currentGameSpeed;
+                obstacle.style.left = newLeft + 'px';
+                
+                // Aktualizacja pozycji przeszkody w tablicy aktywnych pozycji
+                if (i < activeObstaclePositions.length) {
+                    activeObstaclePositions[i].left = newLeft;
+                    activeObstaclePositions[i].right = newLeft + 39; // Aktualizacja dla szerokości 39px
+                }
+                
+                // Sprawdzenie kolizji
+                if (checkCollision(playerElement, obstacle)) {
+                    gameOver();
+                    return;
+                }
+                
+                // Usunięcie przeszkody po wyjściu z ekranu
+                if (newLeft < -50) {
+                    obstacle.remove();
+                    obstacles.splice(i, 1);
+                    activeObstaclePositions.splice(i, 1);
+                    i--;
+                }
+            }
+            
+            // Aktualizacja marchewek
+            for (let i = 0; i < carrots.length; i++) {
+                let carrot = carrots[i];
+                carrot.style.left = parseInt(carrot.style.left) - currentGameSpeed + 'px';
+                
+                // Sprawdzenie zebrania marchewki
+                if (checkCollision(playerElement, carrot)) {
+                    carrot.remove();
+                    carrots.splice(i, 1);
+                    i--;
+                    score++;
+                    document.getElementById('score').textContent = 'Marchewki: ' + score;
+                    
+                    // Sprawdź, czy osiągnięto wielokrotność 7
+                    if (score % 7 === 0) {
+                        levelUp();
+                    }
+                }
+                
+                // Usunięcie marchewki po wyjściu z ekranu
+                if (parseInt(carrot.style.left) < -50) {
+                    carrot.remove();
+                    carrots.splice(i, 1);
+                    i--;
+                }
+            }
+            
+            // Aktualizacja dekoracji (chmury, ptaki)
+            for (let i = 0; i < decorations.length; i++) {
+                let decoration = decorations[i];
+                
+                // Aktualizuj tylko ruchome dekoracje (chmury, ptaki)
+                if (decoration.classList.contains('cloud')) {
+                    let speed = currentGameSpeed * 0.3;
+                    decoration.style.left = parseInt(decoration.style.left) - speed + 'px';
+                    
+                    // Usunięcie dekoracji po wyjściu z ekranu
+                    if (parseInt(decoration.style.left) < -100) {
+                        decoration.remove();
+                        decorations.splice(i, 1);
+                        i--;
+                    }
+                } else if (decoration.classList.contains('bird')) {
+                    // Ustal kierunek lotu ptaka
+                    const flyDirection = decoration.dataset.flyDirection || 'right';
+                    const speed = currentGameSpeed * 0.7;
+                    
+                    // Aktualizuj pozycję zgodnie z kierunkiem
+                    if (flyDirection === 'right') {
+                        decoration.style.left = parseInt(decoration.style.left) + speed + 'px';
+                        // Usuń ptaka, gdy wyleci z prawej strony
+                        if (parseInt(decoration.style.left) > 850) {
+                            decoration.remove();
+                            decorations.splice(i, 1);
+                            i--;
+                        }
+                    } else {
+                        decoration.style.left = parseInt(decoration.style.left) - speed + 'px';
+                        // Usuń ptaka, gdy wyleci z lewej strony
+                        if (parseInt(decoration.style.left) < -50) {
+                            decoration.remove();
+                            decorations.splice(i, 1);
+                            i--;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Generowanie przeszkód
+        function spawnObstacle() {
+            if (isGameOver) return;
+            
+            const obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle');
+            
+            // Losowa wysokość przeszkody
+            const isLarge = Math.random() > 0.5;
+            obstacle.classList.add(isLarge ? 'tall' : 'small');
+            
+            obstacle.style.left = '800px';
+            document.getElementById('game-container').appendChild(obstacle);
+            obstacles.push(obstacle);
+            
+            // Dodaj pozycję przeszkody do aktywnych pozycji
+            activeObstaclePositions.push({
+                left: 800,
+                right: 839,  // 800 + szerokość przeszkody (39px)
+                type: isLarge ? 'tall' : 'small'
+            });
+            
+            // Zaplanowanie kolejnej przeszkody - czas zależny od prędkości gry
+            let obstacleMinTime = baseObstacleMinTime / gameSpeedMultiplier;
+            let obstacleMaxTime = baseObstacleMaxTime / gameSpeedMultiplier;
+            
+            // Zapewnienie minimalnego i maksymalnego czasu dla przeszkód
+            obstacleMinTime = Math.max(1000, obstacleMinTime);
+            obstacleMaxTime = Math.max(obstacleMinTime + 500, obstacleMaxTime);
+            
+            setTimeout(spawnObstacle, randomTime(obstacleMinTime, obstacleMaxTime));
+        }
+        
+        // Generowanie marchewek
+        function spawnCarrot() {
+            if (isGameOver) return;
+            
+            // Ustaw pozycję marchewki
+            let carrotLeft = 800;
+            let isSafe = true;
+            
+            // Sprawdź, czy marchewka nie koliduje z żadną przeszkodą
+            for (let pos of activeObstaclePositions) {
+                if (carrotLeft + 20 >= pos.left - 10 && carrotLeft <= pos.right + 10) {
+                    isSafe = false;
+                    break;
+                }
+            }
+            
+            // Jeśli pozycja nie jest bezpieczna, przesuń marchewkę w inne miejsce
+            if (!isSafe) {
+                // Spróbuj umieścić marchewkę w losowej pozycji między 850 a 950
+                carrotLeft = Math.floor(Math.random() * 100) + 850;
+            }
+            
+            // Teraz zawsze tworzymy marchewkę, niezależnie czy pozycja była pierwotnie bezpieczna
+            const carrot = document.createElement('div');
+            carrot.classList.add('carrot');
+            carrot.style.left = carrotLeft + 'px';
+            document.getElementById('game-container').appendChild(carrot);
+            carrots.push(carrot);
+            
+            // Zaplanowanie kolejnej marchewki - czas zależny od prędkości gry
+            let carrotMinTime = 1200 / Math.sqrt(gameSpeedMultiplier);
+            let carrotMaxTime = 3000 / Math.sqrt(gameSpeedMultiplier);
+            
+            // Zapewnienie minimalnego czasu dla marchewek
+            carrotMinTime = Math.max(800, carrotMinTime);
+            carrotMaxTime = Math.max(carrotMinTime + 500, carrotMaxTime);
+            
+            setTimeout(spawnCarrot, randomTime(carrotMinTime, carrotMaxTime));
+        }
+        
+        // Sprawdzanie kolizji - poprawiona dokładność kolizji
+        function checkCollision(element1, element2) {
+            const rect1 = element1.getBoundingClientRect();
+            const rect2 = element2.getBoundingClientRect();
+            
+            // Zwiększona tolerancja kolizji dla lepszej rozgrywki
+            return !(
+                rect1.right < rect2.left + 5 ||
+                rect1.left > rect2.right - 5 ||
+                rect1.bottom < rect2.top + 5 ||
+                rect1.top > rect2.bottom - 5
+            );
+        }
+        
+        // Koniec gry
+        function gameOver() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+            document.getElementById('final-score').textContent = 'Zebrane marchewki: ' + score + ' | Poziom: ' + level;
+            document.getElementById('game-over').style.display = 'flex';
+        }
+        
+        // Nowa funkcja - poziom w górę
+        function levelUp() {
+            level++;
+            
+            // Zwiększ mnożnik prędkości gry - bardziej znaczące przyspieszenie
+            gameSpeedMultiplier += 0.3;
+            
+            // Pokaż komunikat o nowym poziomie
+            const levelUpElement = document.getElementById('level-up');
+            levelUpElement.textContent = 'Gratulacje! Poziom ' + level + '!';
+            levelUpElement.style.display = 'block';
+            
+            // Ukryj komunikat po 2 sekundach
+            setTimeout(function() {
+                levelUpElement.style.display = 'none';
+            }, 2000);
+        }
+        
+        // Restart gry
+        function restartGame() {
+            // Usunięcie wszystkich przeszkód i marchewek
+            obstacles.forEach(obstacle => obstacle.remove());
+            carrots.forEach(carrot => carrot.remove());
+            
+            // Usunięcie ruchomych dekoracji
+            decorations.forEach(decoration => {
+                if (decoration.classList.contains('cloud') || decoration.classList.contains('bird')) {
+                    decoration.remove();
+                }
+            });
+            
+            // Usuwamy wszystkie dekoracje
+            decorations = [];
+            
+            obstacles = [];
+            carrots = [];
+            activeObstaclePositions = [];
+            
+            // Reset wartości
+            score = 0;
+            level = 1;
+            gameSpeedMultiplier = 1.0;
+            baseGameSpeed = 5;
+            // Grawitacja pozostaje stała (nie resetujemy jej, bo nie zmieniamy)
+            isJumping = false;
+            jumpCount = 0;
+            jumpVelocity = 0;
+            isGameOver = false;
+            playerBottom = groundHeight;
+            playerElement.style.bottom = playerBottom + 'px';
+            
+            // Aktualizacja interfejsu
+            document.getElementById('score').textContent = 'Marchewki: 0';
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('level-up').style.display = 'none';
+            
+            // Pokaż ekran startowy z wyborem postaci
+            document.getElementById('start-screen').style.display = 'flex';
+        }
+        
+        // Pomocnicza funkcja do losowego czasu
+        function randomTime(min, max) {
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+        
+        // Losowy kolor dla elementów
+        function randomColor() {
+            const colors = ['#4682B4', '#6495ED', '#1E90FF', '#00BFFF', '#87CEEB', '#B0E0E6'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+    </script>
+</body>
+</html>
